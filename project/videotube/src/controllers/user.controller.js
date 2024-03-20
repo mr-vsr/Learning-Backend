@@ -3,19 +3,20 @@ import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
-import jwt from "jsonwebtoken";
-import mongoose from "mongoose";
+
 
 const generateAccessAndRefreshTokens = async (userId) => {
-    try {
-        const user = await User.findById(userId);
-        const accessToken = user.generateAccessToken();
-        const refreshToken = user.generateRefreshToken();
 
-        user.refreshToken = refreshToken
-        await user.save({ validateBeforeSave: false })
+    try {
+
+        const user = await User.findById(userId);//Finding the user
+        const accessToken = user.generateAccessToken();//generating the access token
+        const refreshToken = user.generateRefreshToken();//generating the refresh token
+
+        user.refreshToken = refreshToken; //Setting the refresh token field of the user model and giving it the value of generated refresh token
+        await user.save({ validateBeforeSave: false });//Saving the refresh token field value to the value assigned in the database
         
-        return { accessToken, refreshToken };
+        return { accessToken, refreshToken };//returning the access and refresh token 
 
     } catch (error) {
         throw new ApiError(500,"Something went wrong while generating refresh and access token")
@@ -60,8 +61,8 @@ const registerUser = asyncHandler(async (req, res) => {
     //This req.files comes from the multer middleware function
 
     let coverImageLocalPath;
-    if (req.file && Array.isArray(req.file.coverImage) && req.file.coverImage.length > 0) {
-        coverImageLocalPath = req.file.coverImage[0].path;
+    if (req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0) {
+        coverImageLocalPath = req.files.coverImage[0].path;
     }
 
     if (!avatarLocalPath) {
@@ -118,9 +119,11 @@ const loginUser = asyncHandler(async (req, res) => {
     //send cookie
 
     const { email, username, password } = req.body;
-    if (!username || !email) {
+
+    if (!username && !email) {
         throw new ApiError(400, "username or email is required");
     }
+
     const user = await User.findOne({
         $or: [{ username }, { email }]
     });
@@ -133,7 +136,7 @@ const loginUser = asyncHandler(async (req, res) => {
 
     const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user._id);
 
-    const loginUser = await User.findById(user._id).select("-password", "-refreshToken");
+    const loggedUser = await User.findById(user._id).select("-password -refreshToken");
 
     const options = {
         httpOnly: true,
@@ -148,7 +151,7 @@ const loginUser = asyncHandler(async (req, res) => {
             new ApiResponse(
                 200,
                 {
-                    user:loggedUser,accessToken,refreshToken
+                    user: loggedUser, accessToken, refreshToken
                 },
                 "user logged in successfully"
         )
@@ -156,6 +159,7 @@ const loginUser = asyncHandler(async (req, res) => {
 });
 
 const logoutUser = asyncHandler(async (req, res) => {
+    
     await User.findByIdAndUpdate(
         req.user._id,
         {
