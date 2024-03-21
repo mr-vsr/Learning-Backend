@@ -7,7 +7,6 @@ import jwt from "jsonwebtoken"
 import mongoose from "mongoose";
 
 
-
 const generateAccessAndRefreshTokens = async (userId) => {
 
     try {
@@ -25,7 +24,6 @@ const generateAccessAndRefreshTokens = async (userId) => {
         throw new ApiError(500,"Something went wrong while generating refresh and access token")
     }
 }
-
 
 const registerUser = asyncHandler(async (req, res) => {
 
@@ -538,7 +536,6 @@ const getWatchHistory = asyncHandler(async (req, res) => {
     )
 
 })
-
 
 export {
     registerUser,
