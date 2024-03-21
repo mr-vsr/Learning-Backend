@@ -1,5 +1,29 @@
-import mongoose from "mongoose";
+import mongoose, { Schema } from 'mongoose';
 
-const medicalHistorySchema = mongoose.Schema({}, { timestamps: true });
+const medicalRecordSchema = new mongoose.Schema({
+    patient: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Patient",
+    },
+    hospital: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref:"Hospital"
+    },
+    comment: {
+        type: String,
+        required:true
+    },
+    consultingDoctor: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref:"Doctor"
+    },
+    medicalHistory: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref:"MedicalRecord"
+    }
+}, { timestamps: true });
 
-export const medicalHistory = mongoose.model("medicalHistory", medicalHistorySchema);
+export const MedicalRecord = mongoose.model(
+    'MedicalRecord',
+    medicalRecordSchema
+);

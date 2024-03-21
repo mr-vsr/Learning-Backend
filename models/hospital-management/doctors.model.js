@@ -1,5 +1,31 @@
-import mongoose from "mongoose"; 
+import mongoose from 'mongoose';
 
-const doctorSchema = mongoose.Schema({}, { timestamps: true });
+const doctorSchema = new mongoose.Schema(
+    {
+        name: {
+            type: String,
+            required: true,
+        },
+        salary: {
+            type: String,
+            required: true,
+        },
+        qualification: {
+            type: String,
+            required: true,
+        },
+        experienceInYears: {
+            type: Number,
+            defaut: 0,
+        },
+        worksInHospitals: [
+            {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'Hospital',
+            },
+        ],
+    },
+    { timestamps: true }
+);
 
-export const Doctor = mongoose.model("Doctor", doctorSchema);
+export const Doctor = mongoose.model('Doctor', doctorSchema);
