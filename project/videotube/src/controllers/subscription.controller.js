@@ -11,9 +11,58 @@ const toggleSubscription = asyncHandler(async (req, res) => {
     // TODO: toggle subscription
 })
 
-// controller to return subscriber list of a channel
+// controller to return subscribers list of a channel
 const getUserChannelSubscribers = asyncHandler(async (req, res) => {
-    const { channelId } = req.params
+    //steps
+    //check if the channel exists or not
+    //return the subscriber count 
+
+    const { channelId } = req.params;
+
+    if (!channelId) {
+        throw new ApiError(400, "Channel Id is missing");
+    }
+
+    const channel = await User.findById(channelId);
+
+    if (!channel) {
+        throw new ApiError(404, "Channel does not exists");
+    }
+
+    const subscribers = await User.aggregate([
+        {
+            $match: {
+                username: username?.toLowerCase()
+            }
+        },
+        {
+            $lookup: {
+                from: "subscriptions",
+                localField: "_id",
+                foreignField: "channel",
+                as: "subscribers"
+            }
+        },
+        {
+            $addFields: {
+                subscribersCount: {
+                    $size: "$subscribers"
+                },
+            }
+        }
+    ]);
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                subscribers,
+                "Number of subscribers returned successfully"
+            )
+        );
+
+
 })
 
 // controller to return channel list to which user has subscribed
