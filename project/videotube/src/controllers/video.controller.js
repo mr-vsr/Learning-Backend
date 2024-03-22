@@ -1,10 +1,11 @@
-import mongoose, { isValidObjectId } from "mongoose"
-import { Video } from "../models/video.model.js"
-import { User } from "../models/user.model.js"
-import { ApiError } from "../utils/ApiError.js"
-import { ApiResponse } from "../utils/ApiResponse.js"
-import { asyncHandler } from "../utils/asyncHandler.js"
-import { uploadOnCloudinary } from "../utils/cloudinary.js"
+import mongoose, { isValidObjectId } from "mongoose";
+import { Video } from "../models/video.model.js";
+import { User } from "../models/user.model.js";
+import { ApiError } from "../utils/ApiError.js";
+import { ApiResponse } from "../utils/ApiResponse.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { uploadOnCloudinary,deleteFromCloduinary } from "../utils/cloudinary.js";
+import { getPublicId } from "../utils/getPublicId.js";
 
 
 const getAllVideos = asyncHandler(async (req, res) => {
@@ -13,8 +14,6 @@ const getAllVideos = asyncHandler(async (req, res) => {
 })
 
 const publishAVideo = asyncHandler(async (req, res) => {
-    // TODO: get video, upload to cloudinary, create video
-    
     //steps:
     //get hold of the title and description of the video for req body
     //get the video and thumbnails from multer
@@ -57,7 +56,8 @@ const publishAVideo = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Error while uploading Thumbnail to cloudinary");
     }
 
-    // console.log(videoFile.duration);
+    // console.log(videoFile);
+    // console.log(thumbnail);
     // console.log(req.user);
 
     //creating a new entry into the Video collection in the database
@@ -128,14 +128,17 @@ const updateVideo = asyncHandler(async (req, res) => {
     //check if the video Id is provided by the user or not
     //update the value of the fields in the database
     //return the updated response
-
-    //TODO: delete the previous thumbnail from the clodinary server
     
     const { videoId } = req.params;
     
     if (!videoId) {
         throw new ApiError(400, "Video Id is required");
     }
+
+    let video = await Video.findById(videoId);
+
+    const publicIdThumbnail = getPublicId(video.thumbnail);
+    
     
     const { title, description } = req.body;
 
@@ -155,7 +158,9 @@ const updateVideo = asyncHandler(async (req, res) => {
         throw new ApiError(500,"Error occurred while uploading the thumbnail")
     }
 
-    const video = await Video.findByIdAndUpdate(
+    await deleteFromCloduinary(publicIdThumbnail, 'image');
+
+    video = await Video.findByIdAndUpdate(
         videoId,
         {
             $set: {
@@ -182,8 +187,42 @@ const updateVideo = asyncHandler(async (req, res) => {
 })
 
 const deleteVideo = asyncHandler(async (req, res) => {
-    const { videoId } = req.params
-    //TODO: delete video
+    //steps
+    //check if the video id is provided by the user
+    //find if the video exists with the specified id
+    //delete the video from the database
+    //delete the video and thumbnail from the cloudinary server
+
+    const { videoId } = req.params;
+
+    if (!videoId) {
+        throw new ApiError(400, "Video Id is missing");
+    }
+
+    const video = await Video.findById(videoId);
+    
+    const thumbnailUrl = video.thumbnail;
+    const videoUrl = video.videoFile;
+
+    const publicIdThumbnail = getPublicId(thumbnailUrl);
+    const publicIdVideo = getPublicId(videoUrl);
+
+
+    await Video.findByIdAndDelete(videoId);
+
+    await deleteFromCloduinary(publicIdVideo,'video');
+    await deleteFromCloduinary(publicIdThumbnail,'image');
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                {},
+                "Video deleted successfully"
+            )
+        );
+
 })
 
 const togglePublishStatus = asyncHandler(async (req, res) => {
