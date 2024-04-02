@@ -9,9 +9,40 @@ import { getPublicId } from "../utils/getPublicId.js";
 
 
 const getAllVideos = asyncHandler(async (req, res) => {
-    const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query
-    //TODO: get all videos based on query, sort, pagination
-})
+    const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query;
+
+    // Match stage to filter videos based on user ID if provided
+    const matchStage = userId ? { $match: { owner: mongoose.Types.ObjectId(userId) } } : { $match: {} };
+
+    // Sorting stage based on sortBy and sortType
+    const sortStage = sortBy ? { $sort: { [sortBy]: sortType === 'desc' ? -1 : 1 } } : { $sort: { createdAt: -1 } };
+
+    // Pagination stage
+    const skip = (page - 1) * limit;
+    const paginationStage = { $skip: skip };
+    const limitStage = { $limit: parseInt(limit) };
+
+    // Aggregation pipeline
+    const aggregationPipeline = [
+        matchStage,
+        sortStage,
+        paginationStage,
+        limitStage
+    ];
+
+    // Perform aggregation
+    const videos = await Video.aggregate(aggregationPipeline);
+
+    res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                videos,
+                "successfully retrieved videos uploaded by that user"
+            ));
+});
+
 
 const publishAVideo = asyncHandler(async (req, res) => {
     //steps:

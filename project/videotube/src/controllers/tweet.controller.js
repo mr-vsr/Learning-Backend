@@ -150,7 +150,7 @@ const deleteTweet = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Tweet Id is missing");
     }
 
-    const tweet = await Tweet.findByIdAndDelete(tweetId);
+    await Tweet.findByIdAndDelete(tweetId);
 
     return res
         .status(200)

@@ -7,11 +7,43 @@ import { asyncHandler } from "../utils/asyncHandler.js"
 import { User } from "../models/user.model.js"
 
 const getVideoComments = asyncHandler(async (req, res) => {
-    //TODO: get all comments for a video
-    const { videoId } = req.params
-    const { page = 1, limit = 10 } = req.query
+    const { videoId } = req.params;
+    const { page = 1, limit = 10 } = req.query;
 
-})
+    if (!videoId) {
+        throw new ApiError(400, "Video Id is missing");
+    }
+
+    const pageNumber = parseInt(page);
+    const limitNumber = parseInt(limit);
+
+    try {
+        const pipeline = [
+            // Match comments for the given videoId
+            {
+                $match: {
+                    video: mongoose.Types.ObjectId(videoId)
+                }
+            },
+        ];
+
+        // Execute aggregation pipeline
+        const comments = await Comment.aggregate(pipeline);
+
+        // Paginate the results
+        const startIndex = (pageNumber - 1) * limitNumber;
+        const endIndex = pageNumber * limitNumber;
+        const paginatedComments = comments.slice(startIndex, endIndex);
+
+        // Return paginated comments
+        res.json(new ApiResponse(paginatedComments));
+    } catch (error) {
+        // Handle error
+        console.error(error);
+        res.status(500).json(new ApiError("Failed to get video comments"));
+    }
+});
+
 
 const addComment = asyncHandler(async (req, res) => {
     //steps
@@ -95,7 +127,7 @@ const updateComment = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Content is required");
     }
     
-    console.log(content)
+    // console.log(content)
 
 
     comment = await Comment.findByIdAndUpdate(
@@ -123,7 +155,29 @@ const updateComment = asyncHandler(async (req, res) => {
 })
 
 const deleteComment = asyncHandler(async (req, res) => {
-    // TODO: delete a comment
+    // steps
+    //find the comment by id
+    //check if the comment exists
+    //if yes then delete it
+    //return a response
+
+    const { commentId } = req.params;
+    
+    if (!commentId) {
+        throw new ApiError(400, "Comment Id is missing");
+    }
+
+    await Comment.findByIdAndDelete(commentId);
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                {},
+                "Comment deleted successfully!"
+            )
+        );
 })
 
 export {
